@@ -14,6 +14,21 @@ except ImportError:  # pragma: no cover
 DEFAULT_LOCAL_CSV = "data/Jugadoresv1.csv"
 
 
+def _get_setting(key: str, default: str = "") -> str:
+    value = os.getenv(key, "").strip()
+    if value:
+        return value
+    try:
+        import streamlit as st  # lazy import for local scripts/tests
+
+        secret_value = st.secrets.get(key, default)
+        if secret_value is None:
+            return default
+        return str(secret_value).strip()
+    except Exception:
+        return default
+
+
 def _build_drive_download_url(file_id: str) -> str:
     return f"https://drive.google.com/uc?export=download&id={file_id}"
 
@@ -75,11 +90,11 @@ def load_players_data() -> pd.DataFrame:
     """
     load_dotenv()
 
-    csv_url = os.getenv("WYSCOUT_CSV_URL", "").strip()
-    drive_file_id = os.getenv("WYSCOUT_DRIVE_FILE_ID", "").strip()
-    local_path = os.getenv("WYSCOUT_CSV_LOCAL_PATH", DEFAULT_LOCAL_CSV).strip()
-    service_account_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
-    service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+    csv_url = _get_setting("WYSCOUT_CSV_URL", "")
+    drive_file_id = _get_setting("WYSCOUT_DRIVE_FILE_ID", "")
+    local_path = _get_setting("WYSCOUT_CSV_LOCAL_PATH", DEFAULT_LOCAL_CSV)
+    service_account_file = _get_setting("GOOGLE_SERVICE_ACCOUNT_FILE", "")
+    service_account_json = _get_setting("GOOGLE_SERVICE_ACCOUNT_JSON", "")
 
     try:
         if drive_file_id and (service_account_file or service_account_json):
@@ -105,4 +120,10 @@ def load_players_data() -> pd.DataFrame:
             return pd.read_csv(local_path, sep=";", encoding="utf-8")
         raise
 
-    return pd.read_csv(local_path, sep=";", encoding="utf-8")
+    if os.path.exists(local_path):
+        return pd.read_csv(local_path, sep=";", encoding="utf-8")
+    raise FileNotFoundError(
+        "No se encontró ninguna fuente de datos válida. "
+        "Configura WYSCOUT_DRIVE_FILE_ID y GOOGLE_SERVICE_ACCOUNT_JSON/FILE "
+        "en variables de entorno o en st.secrets."
+    )
