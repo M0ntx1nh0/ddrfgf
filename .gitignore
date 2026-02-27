@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+config/google-service-account.json
+config/wyscoutreader-ed476f32cba1.json
+
