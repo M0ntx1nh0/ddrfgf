@@ -74,3 +74,34 @@ figures/images/*.zip
 
 # Optional local archive clutter
 *.bak
+
+# ==============================
+# Local datasets / legacy (not for GitHub)
+# ==============================
+1RFEF*.csv
+2RFEF*.csv
+Segunda_Division_RFEF_*.csv
+Faltantes.csv
+Organizaci_n_columnas_Wyscout.csv
+Organizaci_n_columnas_Wyscout.xlsx
+Traducciones_Estad_sticas.csv
+Duplicados_2RFEF_Wyscout.xlsx
+data/
+*.ipynb
+*.xlsx
+
+# Legacy pages/scripts (local only)
+pages/pagina1.py
+pages/pagina2.py
+menu.py
+1rfef.py
+ws_wyscout_*.py
+ws_wyscout_*.ipynb
+common/cluster.ipynb
+common/crear_kpis.py
+common/reporte_fpdf.py
+common/app_config.py
+
+# Extra image/logos not required by home
+figures/logos/
+figures/images/curso.png
