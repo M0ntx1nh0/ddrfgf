@@ -1,12 +1,76 @@
+# ==============================
+# Secrets / Environment
+# ==============================
 .env
 .env.*
 !.env.example
+.streamlit/secrets.toml
 
-venv/
-__pycache__/
-*.pyc
-.DS_Store
-
+# Service account keys
 config/google-service-account.json
 config/wyscoutreader-ed476f32cba1.json
+*.pem
+*.key
 
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ==============================
+# OS / Editor
+# ==============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ==============================
+# Logs / Temp
+# ==============================
+*.log
+tmp/
+temp/
+*.tmp
+
+# ==============================
+# Generated exports / artifacts
+# ==============================
+pdf_exports/
+common/pdf_exports/
+
+figures/pizzas/
+figures/scatterplots/
+figures/tables/
+
+# Temporary photos/zips (keep source PNG assets)
+figures/images/*.jpg
+figures/images/*.jpeg
+figures/images/*.zip
+
+# Optional local archive clutter
+*.bak
