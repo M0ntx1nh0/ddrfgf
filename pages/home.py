@@ -184,34 +184,7 @@ def render_scoring_lookup(df_base: pd.DataFrame, key_prefix: str, section_title:
         df_scores.groupby("position_gen_ESP1")["scoring_total"].rank(pct=True) * 100
     )
 
-    equipos = sorted(df_scores["last_club_name"].dropna().unique().tolist())
-    equipo_sel = st.selectbox("Equipo", ["Seleccionar..."] + equipos, key=f"{key_prefix}_equipo")
-
-    if equipo_sel == "Seleccionar...":
-        return
-
-    df_equipo = df_scores[df_scores["last_club_name"] == equipo_sel].copy()
-    jugadores_equipo = sorted(df_equipo["name"].dropna().unique().tolist())
-    top5_equipo = (
-        df_equipo.sort_values("scoring_total", ascending=False)["name"]
-        .dropna()
-        .head(5)
-        .tolist()
-    )
-    jugadores_sel = st.multiselect(
-        "Jugadores del equipo",
-        jugadores_equipo,
-        default=top5_equipo if top5_equipo else jugadores_equipo[: min(5, len(jugadores_equipo))],
-        key=f"{key_prefix}_jugadores",
-    )
-
-    if not jugadores_sel:
-        st.info("Selecciona al menos un jugador para mostrar la tabla comparativa.")
-        return
-
-    df_comp = df_equipo[df_equipo["name"].isin(jugadores_sel)].copy()
-    df_comp = df_comp.sort_values("scoring_total", ascending=False).reset_index(drop=True)
-    # Referencias contra el líder de cada ranking en la muestra filtrada (no solo selección manual)
+    # Referencias contra el líder de cada ranking en la muestra filtrada
     ref_of = pd.to_numeric(df_scores["scoring_ofensivo"], errors="coerce").max()
     ref_df = pd.to_numeric(df_scores["scoring_defensivo"], errors="coerce").max()
     ref_po = pd.to_numeric(
@@ -224,88 +197,113 @@ def render_scoring_lookup(df_base: pd.DataFrame, key_prefix: str, section_title:
     ).max()
     ref_tt = pd.to_numeric(df_scores["scoring_total"], errors="coerce").max()
 
-    df_comp["dif_scoring_ofensivo_vs_1o"] = df_comp["scoring_ofensivo"] - ref_of
-    df_comp["dif_scoring_defensivo_vs_1o"] = df_comp["scoring_defensivo"] - ref_df
-    df_comp["dif_scoring_portero_control_vs_1o"] = np.where(
-        df_comp["position_gen_ESP1"] == "Portero",
-        df_comp["scoring_portero"] - ref_po,
-        df_comp["scoring_control"] - ref_ct,
-    )
-    df_comp["dif_scoring_total_vs_1o"] = df_comp["scoring_total"] - ref_tt
+    equipos = sorted(df_scores["last_club_name"].dropna().unique().tolist())
+    equipo_sel = st.selectbox("Equipo", ["Seleccionar..."] + equipos, key=f"{key_prefix}_equipo")
 
-    tabla = df_comp[
-        [
-            "name",
-            "last_club_name",
-            "age",
-            "position_gen_ESP1",
-            "scoring_ofensivo",
-            "dif_scoring_ofensivo_vs_1o",
-            "scoring_defensivo",
-            "dif_scoring_defensivo_vs_1o",
-            "scoring_portero_control",
-            "dif_scoring_portero_control_vs_1o",
-            "scoring_total",
-            "dif_scoring_total_vs_1o",
-            "percentil_posicion",
-        ]
-    ].copy()
-
-    tabla = tabla.rename(
-        columns={
-            "name": "Jugador",
-            "last_club_name": "Equipo",
-            "age": "Edad",
-            "position_gen_ESP1": "Posición",
-            "scoring_ofensivo": "Score Ofensivo",
-            "dif_scoring_ofensivo_vs_1o": "Dif Ofensivo vs 1º",
-            "scoring_defensivo": "Score Defensivo",
-            "dif_scoring_defensivo_vs_1o": "Dif Defensivo vs 1º",
-            "scoring_portero_control": "Score Portero/Control",
-            "dif_scoring_portero_control_vs_1o": "Dif Portero/Control vs 1º",
-            "scoring_total": "Score Total",
-            "dif_scoring_total_vs_1o": "Dif Total vs 1º",
-            "percentil_posicion": "Percentil en su posición",
-        }
-    )
-
-    cols_num = [
-        "Score Ofensivo", "Dif Ofensivo vs 1º",
-        "Score Defensivo", "Dif Defensivo vs 1º",
-        "Score Portero/Control", "Dif Portero/Control vs 1º",
-        "Score Total", "Dif Total vs 1º",
-        "Percentil en su posición",
-    ]
-    for c in cols_num:
-        tabla[c] = pd.to_numeric(tabla[c], errors="coerce").round(2)
-
-    cols_dif = [
-        "Dif Ofensivo vs 1º",
-        "Dif Defensivo vs 1º",
-        "Dif Portero/Control vs 1º",
-        "Dif Total vs 1º",
-    ]
-    tabla_styled = (
-        tabla.style
-        .format(
-            {
-                "Score Ofensivo": "{:.2f}",
-                "Score Defensivo": "{:.2f}",
-                "Score Portero/Control": "{:.2f}",
-                "Score Total": "{:.2f}",
-                "Dif Ofensivo vs 1º": "{:+.2f}",
-                "Dif Defensivo vs 1º": "{:+.2f}",
-                "Dif Portero/Control vs 1º": "{:+.2f}",
-                "Dif Total vs 1º": "{:+.2f}",
-                "Percentil en su posición": "{:.1f}",
-            }
+    if equipo_sel != "Seleccionar...":
+        df_equipo = df_scores[df_scores["last_club_name"] == equipo_sel].copy()
+        jugadores_equipo = sorted(df_equipo["name"].dropna().unique().tolist())
+        top5_equipo = (
+            df_equipo.sort_values("scoring_total", ascending=False)["name"]
+            .dropna()
+            .head(5)
+            .tolist()
         )
-        .background_gradient(subset=["Percentil en su posición"], cmap="RdYlGn")
-        .background_gradient(subset=cols_dif, cmap="RdYlGn")
-    )
+        jugadores_sel = st.multiselect(
+            "Jugadores del equipo",
+            jugadores_equipo,
+            default=top5_equipo if top5_equipo else jugadores_equipo[: min(5, len(jugadores_equipo))],
+            key=f"{key_prefix}_jugadores",
+        )
 
-    st.dataframe(tabla_styled, use_container_width=True)
-    st.caption("Las diferencias vs 1º se calculan contra el líder de cada ranking (Ofensivo, Defensivo, Portero y Total) dentro de la muestra filtrada.")
+        if not jugadores_sel:
+            st.info("Selecciona al menos un jugador para mostrar la tabla comparativa.")
+        else:
+            df_comp = df_equipo[df_equipo["name"].isin(jugadores_sel)].copy()
+            df_comp = df_comp.sort_values("scoring_total", ascending=False).reset_index(drop=True)
+            df_comp["dif_scoring_ofensivo_vs_1o"] = df_comp["scoring_ofensivo"] - ref_of
+            df_comp["dif_scoring_defensivo_vs_1o"] = df_comp["scoring_defensivo"] - ref_df
+            df_comp["dif_scoring_portero_control_vs_1o"] = np.where(
+                df_comp["position_gen_ESP1"] == "Portero",
+                df_comp["scoring_portero"] - ref_po,
+                df_comp["scoring_control"] - ref_ct,
+            )
+            df_comp["dif_scoring_total_vs_1o"] = df_comp["scoring_total"] - ref_tt
+
+            tabla = df_comp[
+                [
+                    "name",
+                    "last_club_name",
+                    "age",
+                    "position_gen_ESP1",
+                    "scoring_ofensivo",
+                    "dif_scoring_ofensivo_vs_1o",
+                    "scoring_defensivo",
+                    "dif_scoring_defensivo_vs_1o",
+                    "scoring_portero_control",
+                    "dif_scoring_portero_control_vs_1o",
+                    "scoring_total",
+                    "dif_scoring_total_vs_1o",
+                    "percentil_posicion",
+                ]
+            ].copy()
+
+            tabla = tabla.rename(
+                columns={
+                    "name": "Jugador",
+                    "last_club_name": "Equipo",
+                    "age": "Edad",
+                    "position_gen_ESP1": "Posición",
+                    "scoring_ofensivo": "Score Ofensivo",
+                    "dif_scoring_ofensivo_vs_1o": "Dif Ofensivo vs 1º",
+                    "scoring_defensivo": "Score Defensivo",
+                    "dif_scoring_defensivo_vs_1o": "Dif Defensivo vs 1º",
+                    "scoring_portero_control": "Score Portero/Control",
+                    "dif_scoring_portero_control_vs_1o": "Dif Portero/Control vs 1º",
+                    "scoring_total": "Score Total",
+                    "dif_scoring_total_vs_1o": "Dif Total vs 1º",
+                    "percentil_posicion": "Percentil en su posición",
+                }
+            )
+
+            cols_num = [
+                "Score Ofensivo", "Dif Ofensivo vs 1º",
+                "Score Defensivo", "Dif Defensivo vs 1º",
+                "Score Portero/Control", "Dif Portero/Control vs 1º",
+                "Score Total", "Dif Total vs 1º",
+                "Percentil en su posición",
+            ]
+            for c in cols_num:
+                tabla[c] = pd.to_numeric(tabla[c], errors="coerce").round(2)
+
+            cols_dif = [
+                "Dif Ofensivo vs 1º",
+                "Dif Defensivo vs 1º",
+                "Dif Portero/Control vs 1º",
+                "Dif Total vs 1º",
+            ]
+            tabla_styled = (
+                tabla.style
+                .format(
+                    {
+                        "Score Ofensivo": "{:.2f}",
+                        "Score Defensivo": "{:.2f}",
+                        "Score Portero/Control": "{:.2f}",
+                        "Score Total": "{:.2f}",
+                        "Dif Ofensivo vs 1º": "{:+.2f}",
+                        "Dif Defensivo vs 1º": "{:+.2f}",
+                        "Dif Portero/Control vs 1º": "{:+.2f}",
+                        "Dif Total vs 1º": "{:+.2f}",
+                        "Percentil en su posición": "{:.1f}",
+                    }
+                )
+                .background_gradient(subset=["Percentil en su posición"], cmap="RdYlGn")
+                .background_gradient(subset=cols_dif, cmap="RdYlGn")
+            )
+
+            st.dataframe(tabla_styled, use_container_width=True)
+            st.caption("Las diferencias vs 1º se calculan contra el líder de cada ranking (Ofensivo, Defensivo, Portero y Total) dentro de la muestra filtrada.")
+
 
 
 def render_rank_lookup(df_base: pd.DataFrame, key_prefix: str, section_title: str):
@@ -357,66 +355,64 @@ def render_rank_lookup(df_base: pd.DataFrame, key_prefix: str, section_title: st
         ["Seleccionar..."] + sorted(df_rank_m["last_club_name"].dropna().unique().tolist()),
         key=f"{key_prefix}_equipo",
     )
-    if equipo_sel == "Seleccionar...":
-        return
-
-    df_eq = df_rank_m[df_rank_m["last_club_name"] == equipo_sel].copy()
-    if df_eq.empty:
-        st.info("No hay jugadores de ese equipo para esta métrica.")
-        return
-
-    top5_eq = df_eq.sort_values("posicion_ranking", ascending=True)["name"].head(5).tolist()
-    jugadores_sel = st.multiselect(
-        "Jugadores del equipo",
-        sorted(df_eq["name"].dropna().unique().tolist()),
-        default=top5_eq,
-        key=f"{key_prefix}_jugadores",
-    )
-    if not jugadores_sel:
-        st.info("Selecciona al menos un jugador.")
-        return
-
-    df_comp = df_eq[df_eq["name"].isin(jugadores_sel)].copy()
-    df_comp = df_comp.sort_values("posicion_ranking", ascending=True).reset_index(drop=True)
     top_val = df_rank_m[metrica_sel].min() if asc else df_rank_m[metrica_sel].max()
-    df_comp["dif_valor_vs_1o"] = (top_val - df_comp[metrica_sel]) if asc else (df_comp[metrica_sel] - top_val)
 
-    tabla = df_comp[
-        [
-            "name", "last_club_name", "age", "position_gen_ESP1",
-            metrica_sel, "posicion_ranking", "dif_valor_vs_1o", "percentil_metrica"
-        ]
-    ].copy().rename(
-        columns={
-            "name": "Jugador",
-            "last_club_name": "Equipo",
-            "age": "Edad",
-            "position_gen_ESP1": "Posición",
-            metrica_sel: f"Valor ({metrica_sel})",
-            "posicion_ranking": "Posición en ranking",
-            "dif_valor_vs_1o": "Dif valor vs 1º",
-            "percentil_metrica": "Percentil métrica",
-        }
-    )
+    if equipo_sel != "Seleccionar...":
+        df_eq = df_rank_m[df_rank_m["last_club_name"] == equipo_sel].copy()
+        if df_eq.empty:
+            st.info("No hay jugadores de ese equipo para esta métrica.")
+        else:
+            top5_eq = df_eq.sort_values("posicion_ranking", ascending=True)["name"].head(5).tolist()
+            jugadores_sel = st.multiselect(
+                "Jugadores del equipo",
+                sorted(df_eq["name"].dropna().unique().tolist()),
+                default=top5_eq,
+                key=f"{key_prefix}_jugadores",
+            )
+            if not jugadores_sel:
+                st.info("Selecciona al menos un jugador.")
+            else:
+                df_comp = df_eq[df_eq["name"].isin(jugadores_sel)].copy()
+                df_comp = df_comp.sort_values("posicion_ranking", ascending=True).reset_index(drop=True)
+                df_comp["dif_valor_vs_1o"] = (top_val - df_comp[metrica_sel]) if asc else (df_comp[metrica_sel] - top_val)
 
-    tabla["Posición en ranking"] = pd.to_numeric(tabla["Posición en ranking"], errors="coerce").astype("Int64")
-    for c in [f"Valor ({metrica_sel})", "Dif valor vs 1º", "Percentil métrica"]:
-        tabla[c] = pd.to_numeric(tabla[c], errors="coerce").round(2)
+                tabla = df_comp[
+                    [
+                        "name", "last_club_name", "age", "position_gen_ESP1",
+                        metrica_sel, "posicion_ranking", "dif_valor_vs_1o", "percentil_metrica"
+                    ]
+                ].copy().rename(
+                    columns={
+                        "name": "Jugador",
+                        "last_club_name": "Equipo",
+                        "age": "Edad",
+                        "position_gen_ESP1": "Posición",
+                        metrica_sel: f"Valor ({metrica_sel})",
+                        "posicion_ranking": "Posición en ranking",
+                        "dif_valor_vs_1o": "Dif valor vs 1º",
+                        "percentil_metrica": "Percentil métrica",
+                    }
+                )
 
-    tabla_styled = (
-        tabla.style
-        .format(
-            {
-                f"Valor ({metrica_sel})": "{:.2f}",
-                "Dif valor vs 1º": "{:+.2f}",
-                "Percentil métrica": "{:.1f}",
-            }
-        )
-        .background_gradient(subset=["Percentil métrica"], cmap="RdYlGn")
-        .background_gradient(subset=["Dif valor vs 1º"], cmap="RdYlGn")
-    )
-    st.dataframe(tabla_styled, use_container_width=True)
-    st.caption("En Ranking, la referencia es el 1º de la métrica seleccionada en la muestra filtrada.")
+                tabla["Posición en ranking"] = pd.to_numeric(tabla["Posición en ranking"], errors="coerce").astype("Int64")
+                for c in [f"Valor ({metrica_sel})", "Dif valor vs 1º", "Percentil métrica"]:
+                    tabla[c] = pd.to_numeric(tabla[c], errors="coerce").round(2)
+
+                tabla_styled = (
+                    tabla.style
+                    .format(
+                        {
+                            f"Valor ({metrica_sel})": "{:.2f}",
+                            "Dif valor vs 1º": "{:+.2f}",
+                            "Percentil métrica": "{:.1f}",
+                        }
+                    )
+                    .background_gradient(subset=["Percentil métrica"], cmap="RdYlGn")
+                    .background_gradient(subset=["Dif valor vs 1º"], cmap="RdYlGn")
+                )
+                st.dataframe(tabla_styled, use_container_width=True)
+                st.caption("En Ranking, la referencia es el 1º de la métrica seleccionada en la muestra filtrada.")
+
 
 # =============================
 # TABS HOME
